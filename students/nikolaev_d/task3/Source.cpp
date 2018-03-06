@@ -4,10 +4,6 @@
 #include <windows.h>
 #include <locale>
 #include <dos.h>
-#include <assert.h>
-#include <gdiplus.h>
-using namespace Gdiplus;
-#pragma comment (lib, "gdiplus.lib")
 
 //Advansed Console Menu
 class ACMenu
@@ -22,10 +18,10 @@ class ACMenu
 	int SIZE = 0; // Количество пунктов меню
 	int mSelected = 0; // На чем внимание
 	int LastSelected = 0; // Что было выбрано
-	char **mNames;
+	char **mNames; // Пункты меню
+
 	HWND hwndConsole = FindWindow(L"ConsoleWindowClass", NULL);
 	HDC hdcConsole = GetDC(hwndConsole);
-
 	HBRUSH hBrushWhite = CreateSolidBrush(RGB(255, 255, 255));
 	HBRUSH hBrushBlack = CreateSolidBrush(RGB(0, 0, 0));
 	CONSOLE_CURSOR_INFO structCursorInfo;
@@ -35,11 +31,21 @@ public:
 
 	ACMenu(int count, char **_Names = {}) : mNames(_Names), SIZE(count)
 	{
-		TriggerCursor();
+		TriggerCursor(false);
 	}
-
+	ACMenu operator()(int count, char **_Names)
+	{
+		mNames = _Names;
+		SIZE = count;
+		return true;
+	}
+	void Close()
+	{
+		ClearConsole();
+	}
 	int SelectItem(int selected = 0)
 	{
+		ClearConsole();
 		mSelected = selected;
 		char c;
 		while (DrawMenu(mSelected))
@@ -54,6 +60,8 @@ public:
 						//UP
 						--mSelected;
 						mSelected = mSelected % SIZE;
+						if (mSelected < 0)
+							mSelected += SIZE;
 						break;
 					}
 					case 80:
@@ -63,35 +71,26 @@ public:
 						mSelected = mSelected % SIZE;
 						break;
 					}
-					case 75:
-					{
-						//LEFT
-						break;
-					}
-					case 77:
-					{
-						//RIGHT
-					}
 				}
 			}
 			else if (c == 13)
 			{
+				ClearConsole();
+				LastSelected = mSelected;
 				return mSelected;
 			}
 			Sleep(5);// Сбиваем нагрузку на процессор
 		}
 	}
-
-
-
 	~ACMenu()
 	{
+		TriggerCursor(true);
 		delete[] mNames;
 		DeleteObject(hBrushBlack);
 		DeleteObject(hBrushWhite);
 		ReleaseDC(hwndConsole, hdcConsole);
 	}
-	
+
 
 private:
 	bool DrawMenu(int selected = 0)
@@ -106,12 +105,18 @@ private:
 		try
 		{
 			int padding = number * (ITEM_PADDING + ITEM_HEIGHT);
-			SelectObject(hdcConsole, (selected ? hBrushBlack : hBrushWhite));
+			if (selected)
+				SelectObject(hdcConsole, hBrushWhite);
+			else
+				SelectObject(hdcConsole, hBrushBlack);
+
+			Rectangle(hdcConsole, mX - 2, mY + padding - 2, mX + ITEM_WIDTH + 2, mY + padding + ITEM_HEIGHT + 2);
+			SelectObject(hdcConsole, selected ? hBrushBlack : hBrushWhite);
 			Rectangle(hdcConsole, mX, mY + padding, mX + ITEM_WIDTH, mY + padding + ITEM_HEIGHT);
 			SelectObject(hdcConsole, (selected ? hBrushWhite : hBrushBlack));
 			Rectangle(hdcConsole, mX + ITEM_BORDER, mY + ITEM_BORDER + padding, mX + ITEM_WIDTH - ITEM_BORDER, mY + ITEM_HEIGHT - ITEM_BORDER + padding);
 			SetBkMode(hdcConsole, TRANSPARENT);
-			if(!selected)
+			if (!selected)
 				SetTextColor(hdcConsole, RGB(255, 255, 255));
 			else
 				SetTextColor(hdcConsole, RGB(0, 0, 0));
@@ -125,10 +130,10 @@ private:
 			return false;
 		}
 	}
-	void TriggerCursor()
+	void TriggerCursor(bool t)
 	{
 		GetConsoleCursorInfo(handle, &structCursorInfo);
-		structCursorInfo.bVisible = !structCursorInfo.bVisible;
+		structCursorInfo.bVisible = t;
 		SetConsoleCursorInfo(handle, &structCursorInfo);
 	}
 	void ClearConsole()
@@ -153,14 +158,47 @@ int main()
 	setlocale(LC_ALL, "Rus");
 
 	char **mNames = new char*[4];
+	ACMenu t(4, mNames);
+sel:
+	t(4, mNames);
 	mNames[0] = "CONTINUE";
 	mNames[1] = "SAVE";
 	mNames[2] = "LOAD";
 	mNames[3] = "EXIT";
-
-	ACMenu t(4, mNames);
-	t.SelectItem(0);
 	
+	switch (t.SelectItem())
+	{
+		case 0:
+		{
+			t.Close();
+			std::cout << "U r plaing the game" << std::endl;
+			break;
+		}
+		case 1:
+		{
+			mNames[0] = "FILE 1";
+			mNames[1] = "FILE 2";
+			t(2, mNames);
+			t.SelectItem();
+			goto sel;
+			break;
+		}
+		case 2:
+		{
+			mNames[0] = "FILE 1";
+			mNames[1] = "FILE 2";
+			t(2, mNames);
+			t.SelectItem();
+			goto sel;
+			break;
+		}
+		case 3:
+		{
+			t.Close();
+			return 0;
+		}
+	}
+
 
 	system("pause");
 	return 0;
