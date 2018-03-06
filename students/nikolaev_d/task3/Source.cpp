@@ -2,17 +2,15 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
-#include <locale>
-#include <dos.h>
 
 //Advansed Console Menu
 class ACMenu
 {
 	// Высота пункта меню
-#define ITEM_HEIGHT 30
-#define ITEM_WIDTH 100
-#define ITEM_BORDER 3
-#define ITEM_PADDING 4
+	#define ITEM_HEIGHT 30
+	#define ITEM_WIDTH 100
+	#define ITEM_BORDER 3
+	#define ITEM_PADDING 4
 	int mX = 50; // Menu pos X
 	int mY = 50; // Menu pos Y
 	int SIZE = 0; // Количество пунктов меню
@@ -27,17 +25,63 @@ class ACMenu
 	CONSOLE_CURSOR_INFO structCursorInfo;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	void* handle = GetStdHandle(STD_OUTPUT_HANDLE);
-public:
 
-	ACMenu(int count, char **_Names = {}) : mNames(_Names), SIZE(count)
+	public:
+	ACMenu(int count, char* _Names[])
 	{
+		delete[] mNames;
+		SIZE = count;
+		mNames = new char*[SIZE];
+
+		for (int i = 0; i < SIZE; i++)
+			mNames[i] = _Names[i];
+
 		TriggerCursor(false);
 	}
-	ACMenu operator()(int count, char **_Names)
+	void SetPos(int x, int y)
 	{
-		mNames = _Names;
-		SIZE = count;
+		mX = x;
+		mY = y;
+	}
+	bool SetSize(int _Size)
+	{
+		//Чтобы не было ошибок
+		if (_Size > SIZE)
+			return false;
+
+		SIZE = _Size;
 		return true;
+		
+	}
+	bool SetItem(int id, char* _Name)
+	{
+		if (id >= SIZE)
+			return false;
+		mNames[id] = _Name;
+		return true;
+	}
+	void SetItems(int count, char* _Names[])
+	{
+		delete[] mNames;
+		SIZE = count;
+		mNames = new char*[SIZE];
+
+		for (int i = 0; i < SIZE; i++)
+			mNames[i] = _Names[i];
+
+		TriggerCursor(false);
+	}
+	int GetSize()
+	{
+		return SIZE;
+	}
+	int GetLastId()
+	{
+		return LastSelected;
+	}
+	char* GetLastName()
+	{
+		return mNames[LastSelected];
 	}
 	void Close()
 	{
@@ -48,56 +92,58 @@ public:
 		ClearConsole();
 		mSelected = selected;
 		char c;
-		while (DrawMenu(mSelected))
-		{
-			c = _getch();
-			if (c == -32)
+		for (int i = 0; i < 3; i++)// 3 попытки на перерисовку меню
+			while (DrawMenu(mSelected))
 			{
-				switch (c = _getch())
+				c = _getch();
+				if (c == -32)
 				{
-					case 72:
+					switch (c = _getch())
 					{
-						//UP
-						--mSelected;
-						mSelected = mSelected % SIZE;
-						if (mSelected < 0)
-							mSelected += SIZE;
-						break;
-					}
-					case 80:
-					{
-						//DOWN
-						++mSelected;
-						mSelected = mSelected % SIZE;
-						break;
+						case 72://UP
+						{
+							--mSelected;
+							mSelected = mSelected % SIZE;
+							if (mSelected < 0)
+								mSelected += SIZE;
+							break;
+						}
+						case 80://DOWN
+						{
+							++mSelected;
+							mSelected = mSelected % SIZE;
+							break;
+						}
 					}
 				}
+				else if (c == 13)
+				{
+					ClearConsole();
+					LastSelected = mSelected;
+					return mSelected;
+				}
+				Sleep(5);// Сбиваем нагрузку на процессор
 			}
-			else if (c == 13)
-			{
-				ClearConsole();
-				LastSelected = mSelected;
-				return mSelected;
-			}
-			Sleep(5);// Сбиваем нагрузку на процессор
-		}
+		return -1;
 	}
 	~ACMenu()
 	{
-		TriggerCursor(true);
 		delete[] mNames;
+		TriggerCursor(true);
 		DeleteObject(hBrushBlack);
 		DeleteObject(hBrushWhite);
 		ReleaseDC(hwndConsole, hdcConsole);
 	}
 
-
-private:
+	private:
 	bool DrawMenu(int selected = 0)
 	{
 		bool tResult = true;
+
 		for (int i = 0; i < SIZE; i++)
-			if (!DrawItem(i, selected == i)) tResult = false;;
+			if (!DrawItem(i, selected == i))
+				tResult = false;
+
 		return tResult;
 	}
 	bool DrawItem(int number, bool selected = false)
@@ -155,52 +201,38 @@ private:
 
 int main()
 {
-	setlocale(LC_ALL, "Rus");
-
-	char **mNames = new char*[4];
+	char *mNames[4] = { "CONTINUE", "SAVE", "LOAD", "EXIT" };
 	ACMenu t(4, mNames);
-sel:
-	t(4, mNames);
-	mNames[0] = "CONTINUE";
-	mNames[1] = "SAVE";
-	mNames[2] = "LOAD";
-	mNames[3] = "EXIT";
-	
-	switch (t.SelectItem())
+	t.SetPos(100, 200);
+
+
+	while (true)
 	{
-		case 0:
+		mNames[0] = "CONTINUE";
+		mNames[1] = "SAVE";
+		mNames[2] = "LOAD";
+		mNames[3] = "EXIT";
+		t.SetItems(4, mNames);
+
+		switch (t.SelectItem())
 		{
-			t.Close();
-			std::cout << "U r plaing the game" << std::endl;
-			break;
+			case 0:
+				std::cout << "You are playing in some game for example" << std::endl;
+				system("pause");
+				continue;
+
+			case 3:
+				t.Close();
+				return 0;
+
+			default:
+				mNames[0] = "FILE 1";
+				mNames[1] = "FILE 2";
+				t.SetItems(2, mNames);
+				t.SelectItem();
+				continue;
 		}
-		case 1:
-		{
-			mNames[0] = "FILE 1";
-			mNames[1] = "FILE 2";
-			t(2, mNames);
-			t.SelectItem();
-			goto sel;
-			break;
-		}
-		case 2:
-		{
-			mNames[0] = "FILE 1";
-			mNames[1] = "FILE 2";
-			t(2, mNames);
-			t.SelectItem();
-			goto sel;
-			break;
-		}
-		case 3:
-		{
-			t.Close();
-			return 0;
-		}
+		return 0;
 	}
-
-
-	system("pause");
-	return 0;
 }
 
