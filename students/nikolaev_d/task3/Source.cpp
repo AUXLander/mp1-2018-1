@@ -27,7 +27,7 @@ class ACMenu
 	void* handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	public:
-	ACMenu(int count, char* _Names[])
+	ACMenu(int count = 0, char* _Names[] = {})
 	{
 		delete[] mNames;
 		SIZE = count;
@@ -89,10 +89,11 @@ class ACMenu
 	}
 	int SelectItem(int selected = 0)
 	{
-		ClearConsole();
-		mSelected = selected;
 		char c;
+		mSelected = selected;
 		for (int i = 0; i < 3; i++)// 3 попытки на перерисовку меню
+		{
+			ClearConsole();
 			while (DrawMenu(mSelected))
 			{
 				c = _getch();
@@ -124,6 +125,7 @@ class ACMenu
 				}
 				Sleep(5);// Сбиваем нагрузку на процессор
 			}
+		}
 		return -1;
 	}
 	~ACMenu()
@@ -184,34 +186,26 @@ class ACMenu
 	}
 	void ClearConsole()
 	{
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
-		COORD coord = { 0, 0 };
 		DWORD written;
-
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
 		if (GetConsoleScreenBufferInfo(handle, &csbi))
 		{
 			DWORD nChars = csbi.dwSize.X * csbi.dwSize.Y;
-
-			FillConsoleOutputCharacter(handle, ' ', nChars, coord, &written);
-			FillConsoleOutputAttribute(handle, csbi.wAttributes, nChars, coord, &written);
+			FillConsoleOutputCharacter(handle, ' ', nChars, COORD{ 0,0 }, &written);
+			FillConsoleOutputAttribute(handle, csbi.wAttributes, nChars, COORD{ 0,0 }, &written);
 		}
-		SetConsoleCursorPosition(handle, coord);
+		SetConsoleCursorPosition(handle, COORD{ 0,0 });
 	}
 };
 
 int main()
 {
-	char *mNames[4] = { "CONTINUE", "SAVE", "LOAD", "EXIT" };
-	ACMenu t(4, mNames);
+	ACMenu t;
 	t.SetPos(100, 200);
-
 
 	while (true)
 	{
-		mNames[0] = "CONTINUE";
-		mNames[1] = "SAVE";
-		mNames[2] = "LOAD";
-		mNames[3] = "EXIT";
+		char *mNames[4] = { "CONTINUE", "SAVE", "LOAD", "EXIT" };
 		t.SetItems(4, mNames);
 
 		switch (t.SelectItem())
@@ -232,7 +226,5 @@ int main()
 				t.SelectItem();
 				continue;
 		}
-		return 0;
 	}
 }
-
