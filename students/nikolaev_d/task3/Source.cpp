@@ -6,10 +6,11 @@
 //Advansed Console Menu
 class ACMenu
 {
-	#define ITEM_HEIGHT 30 // Высота пункта меню
-	#define ITEM_WIDTH 100 // Ширина пункта меню
-	#define ITEM_BORDER 3 // Толщина границ пункта меню
-	#define ITEM_PADDING 4 // Отступ границ пункта меню
+	// Высота пункта меню
+	int ITEM_HEIGHT = 30;
+	int ITEM_WIDTH = 100;
+	int ITEM_BORDER = 3;
+	int ITEM_PADDING = 4;
 	int mX = 0; // Menu pos X
 	int mY = 0; // Menu pos Y
 	int SIZE = 0; // Количество пунктов меню
@@ -25,7 +26,7 @@ class ACMenu
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	void* handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-public:
+	public:
 	ACMenu(int count = 0, char* _Names[] = {})
 	{
 		delete[] mNames;
@@ -44,11 +45,20 @@ public:
 	}
 	bool SetSize(int _Size)
 	{
-		if (_Size > SIZE)//Чтобы не было ошибок
+		//Чтобы не было ошибок
+		if (_Size > SIZE)
 			return false;
 
 		SIZE = _Size;
 		return true;
+		
+	}
+	void SetDrawingSize(int IH = 30, int IW = 100, int IB = 3, int IP = 4 )
+	{
+		ITEM_HEIGHT = ABS(IH);
+		ITEM_WIDTH = ABS(IW);
+		ITEM_BORDER = ABS(IB);
+		ITEM_PADDING = ABS(IP);
 	}
 	bool SetItem(int id, char* _Name)
 	{
@@ -80,11 +90,9 @@ public:
 	{
 		return mNames[LastSelected];
 	}
-	void Clear()
+	void Close()
 	{
-		int padding = SIZE * (ITEM_PADDING + ITEM_HEIGHT);
-		SelectObject(hdcConsole, hBrushBlack);
-		Rectangle(hdcConsole, mX - 2, mY - 2, mX + ITEM_WIDTH + 2, mY + padding + 2);
+		ClearConsole();
 	}
 	int SelectItem(int selected = 0)
 	{
@@ -92,6 +100,7 @@ public:
 		mSelected = selected;
 		for (int i = 0; i < 3; i++)// 3 попытки на перерисовку меню
 		{
+			ClearConsole();
 			while (DrawMenu(mSelected))
 			{
 				c = _getch();
@@ -117,7 +126,7 @@ public:
 				}
 				else if (c == 13)
 				{
-					Clear();
+					ClearConsole();
 					LastSelected = mSelected;
 					return mSelected;
 				}
@@ -135,10 +144,13 @@ public:
 		ReleaseDC(hwndConsole, hdcConsole);
 	}
 
-private:
+	private:
+	int ABS(int t)
+	{
+		return t < 0 ? t *= -1 : t;
+	}
 	bool DrawMenu(int selected = 0)
 	{
-		Clear();
 		bool tResult = true;
 
 		for (int i = 0; i < SIZE; i++)
@@ -161,7 +173,7 @@ private:
 			SelectObject(hdcConsole, selected ? hBrushBlack : hBrushWhite);
 			Rectangle(hdcConsole, mX, mY + padding, mX + ITEM_WIDTH, mY + padding + ITEM_HEIGHT);
 			SelectObject(hdcConsole, (selected ? hBrushWhite : hBrushBlack));
-			Rectangle(hdcConsole, mX + ITEM_BORDER + 1, mY + ITEM_BORDER + padding - 1, mX + ITEM_WIDTH - ITEM_BORDER - 1, mY + ITEM_HEIGHT - ITEM_BORDER + padding + 1);
+			Rectangle(hdcConsole, mX + ITEM_BORDER, mY + ITEM_BORDER + padding, mX + ITEM_WIDTH - ITEM_BORDER, mY + ITEM_HEIGHT - ITEM_BORDER + padding);
 			SetBkMode(hdcConsole, TRANSPARENT);
 			if (!selected)
 				SetTextColor(hdcConsole, RGB(255, 255, 255));
@@ -183,35 +195,49 @@ private:
 		structCursorInfo.bVisible = t;
 		SetConsoleCursorInfo(handle, &structCursorInfo);
 	}
+	void ClearConsole()
+	{
+		DWORD written;
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		if (GetConsoleScreenBufferInfo(handle, &csbi))
+		{
+			DWORD nChars = csbi.dwSize.X * csbi.dwSize.Y;
+			FillConsoleOutputCharacter(handle, ' ', nChars, COORD{ 0,0 }, &written);
+			FillConsoleOutputAttribute(handle, csbi.wAttributes, nChars, COORD{ 0,0 }, &written);
+		}
+		SetConsoleCursorPosition(handle, COORD{ 0,0 });
+	}
 };
 
 int main()
 {
 	ACMenu t;
-	t.SetPos(50, 100);
+	t.SetPos(100, 200);
 
 	while (true)
 	{
 		char *mNames[4] = { "CONTINUE", "SAVE", "LOAD", "EXIT" };
 		t.SetItems(4, mNames);
+		t.SetDrawingSize(30, 100);
 
 		switch (t.SelectItem())
 		{
-		case 0:
-			std::cout << "You are playing in some game for example" << std::endl;
-			system("pause");
-			continue;
+			case 0:
+				std::cout << "You are playing in some game for example" << std::endl;
+				system("pause");
+				continue;
 
-		case 3:
-			t.Clear();
-			return 0;
+			case 3:
+				t.Close();
+				return 0;
 
-		default:
-			mNames[0] = "FILE 1";
-			mNames[1] = "FILE 2";
-			t.SetItems(2, mNames);
-			t.SelectItem();
-			continue;
+			default:
+				t.SetDrawingSize(30, 200);
+				mNames[0] = "FILE <CryptoWorld.exe>";
+				mNames[1] = "FILE <DarkNetStarter.exe>";
+				t.SetItems(2, mNames);
+				t.SelectItem();
+				continue;
 		}
 	}
 }
