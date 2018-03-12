@@ -29,7 +29,6 @@ class ACMenu
 	public:
 	ACMenu(int count = 0, char* _Names[] = {})
 	{
-		delete[] mNames;
 		SIZE = count;
 		mNames = new char*[SIZE];
 
