@@ -323,6 +323,7 @@ public:
 				}
 			}
 			AddTrack(data[4], data[1], data[2], data[5], data[0], temp);
+			delete[] data;
 		}
 	}
 };
