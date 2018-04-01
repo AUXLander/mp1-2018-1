@@ -198,23 +198,69 @@ public:
 		mSize++;
 		SortByName();
 	}
-	void GetBySinger(char *singer)
+	TTrack*  GetBySinger(TTrack *list, char *singer)
 	{
+		int count = 0;
 		for (int i = 0; i < mSize; i++)
+			if (strcmp(mList[i].GetAuthor(), singer) == 0)
+				count++;
+		delete[] list;
+		list = new TTrack[count];
+		for (int i = 0, j = 0; i < mSize; i++)
 			if (strcmp(mList[i].GetSinger(), singer) == 0)
-				std::cout << i << ". " << mList[i] << std::endl;
+			{
+				list[j].SetAlbum(mList[i].GetAlbum());
+				list[j].SetAuthor(mList[i].GetAuthor());
+				list[j].SetComposer(mList[i].GetComposer());
+				list[j].SetDate(mList[i].GetDate());
+				list[j].SetName(mList[i].GetName());
+				list[j].SetSinger(mList[i].GetSinger());
+				j++;
+			}
+		return list;
 	}
-	void GetByComposer(char *composer)
+	TTrack*  GetByComposer(TTrack *list, char *composer)
 	{
+		int count = 0;
 		for (int i = 0; i < mSize; i++)
+			if (strcmp(mList[i].GetAuthor(), composer) == 0)
+				count++;
+		delete[] list;
+		list = new TTrack[count];
+		for (int i = 0, j = 0; i < mSize; i++)
 			if (strcmp(mList[i].GetComposer(), composer) == 0)
-				std::cout << i << ". " << mList[i] << std::endl;
+			{
+				list[j].SetAlbum(mList[i].GetAlbum());
+				list[j].SetAuthor(mList[i].GetAuthor());
+				list[j].SetComposer(mList[i].GetComposer());
+				list[j].SetDate(mList[i].GetDate());
+				list[j].SetName(mList[i].GetName());
+				list[j].SetSinger(mList[i].GetSinger());
+				j++;
+			}
+		return list;
 	}
-	void GetByAuthor(char *author)
+	TTrack* GetByAuthor(TTrack *list, char *author)
 	{
+		int count = 0;
 		for (int i = 0; i < mSize; i++)
 			if (strcmp(mList[i].GetAuthor(), author) == 0)
-				std::cout << i << ". " << mList[i] << std::endl;
+				count++;
+
+		delete[] list;
+		list = new TTrack[count];
+		for (int i = 0, j = 0; i < mSize; i++)
+			if (strcmp(mList[i].GetAuthor(), author) == 0)
+			{
+				list[j].SetAlbum(mList[i].GetAlbum());
+				list[j].SetAuthor(mList[i].GetAuthor());
+				list[j].SetComposer(mList[i].GetComposer());
+				list[j].SetDate(mList[i].GetDate());
+				list[j].SetName(mList[i].GetName());
+				list[j].SetSinger(mList[i].GetSinger());
+				j++;
+			}
+		return list;
 	}
 	void GetList()
 	{
@@ -334,13 +380,14 @@ std::ostream& operator<<(std::ostream& os, TTrack &c)
 int main()
 {
 	setlocale(LC_ALL, "Russian");
-	
-	
+
+
 	CTList list;
 	//list.LoadFromFile("playlist.txt");
 
 	TTrack track("Never Gonna Give You Up", "Rick Astley", "Rick Astley", "Rick Astley", "Whenever You Need Somebody", { 0,0,1987 });
 	TTrack track2("Whenever You Need Somebody", "Rick Astley", "Rick Astley", "Rick Astley", "Whenever You Need Somebody", { 0,0,1987 });
+	TTrack *newList = new TTrack;
 
 	list.AddTrackObj(track);
 	list.AddTrackObj(track2);
@@ -352,7 +399,9 @@ int main()
 	list.AddTrack("No More Looking for Love", "Rick Astley", "Rick Astley", "Rick Astley", "Whenever You Need Somebody", { 0,0,1987 });
 	list.AddTrack("You Move Me", "Rick Astley", "Rick Astley", "Rick Astley", "Whenever You Need Somebody", { 0,0,1987 });
 	list.AddTrack("When I Fall in Love", "Rick Astley", "Rick Astley", "Rick Astley", "Whenever You Need Somebody", { 0,0,1987 });
-	
+
+	//newList = list.GetBySinger(newList, "Rick Astley");
+
 	list.GetList();
 	system("pause");
 	std::cout << std::endl << "Let's del first" << std::endl << std::endl;
