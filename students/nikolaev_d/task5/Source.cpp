@@ -2,16 +2,19 @@
 #include <iostream>;
 #include <string>;
 #include <vector>;
+#include <locale>
+
+#define PC (*pCenter)
 
 using namespace std;
 
 class Date {
-	unsigned int day;
-	unsigned int mounth;
+	int day;
+	int mounth;
 	int year;
 
 public:
-	Date(unsigned int d = 0, unsigned int m = 0, int y = 0) {
+	Date(int d = 0,int m = 0, int y = 0) {
 		m -= 1;
 		d -= 1;
 		year = y + m / 12;
@@ -138,15 +141,173 @@ public:
 
 		return false;
 	}
+	friend ostream& operator<<(ostream& os, Date &c);
+};
+ostream& operator<<(ostream& os, Date &c)
+{
+	return os << c.day << '.' << c.mounth << '.' << c.year;;
+}
+
+class ProcCenter {
+	struct BankUser {
+		short UserID;
+		string UserName;
+		string UserPass;
+		int UserBalance;
+		int DepositBalance;
+		Date DepositStart;
+		Date DepositEnd;
+		float DepositPerc;
+	};
+	vector<BankUser> UsersData;
+	short IDsCounter = 0;
+	Date currentTime;
+	string EncryptData(string data, int seed) {
+		string Encrypted = "";
+
+		for (int i = 0; i < data.length(); i++)
+			Encrypted += to_string((int)(data.at(i) >> 1) + seed % 32);
+
+		Encrypted += to_string(seed) + Encrypted.at(seed % Encrypted.length());
+
+		data = "";
+
+		for (int i = 0; i < Encrypted.length(); i++)
+			data += Encrypted.at(i % Encrypted.length()) << 3;
+
+		return data;
+	}
+public:
+	ProcCenter(Date curdat):currentTime(curdat){}
+	void Update(Date newTime = { 1,1,1970 }) {
+		if (newTime < currentTime) {
+			if(newTime == Date(1,1,1970))
+				newTime = currentTime + Date(1, 2, 0);
+			else
+				newTime = currentTime + newTime;
+		}
+		int cMonth;
+		for (int i = 0; i < UsersData.size(); i++) {
+			if (UsersData[i].DepositEnd < newTime) {
+				cMonth = currentTime.GetDifferenceOfMounth(UsersData[i].DepositEnd);
+				UsersData[i].DepositBalance = 0;
+				UsersData[i].DepositEnd = Date(1, 1, 0);
+				UsersData[i].DepositStart = Date(1, 1, 0);
+			}
+			else
+				cMonth = currentTime.GetDifferenceOfMounth(newTime);
+
+			UsersData[i].UserBalance += UsersData[i].DepositPerc / 12 * UsersData[i].DepositBalance * cMonth;
+		}
+		currentTime = newTime;
+	}
+	short AddUser(string UN, string UP, int UB = 0, int DB = 0, Date DS = { 1, 1, 0 }, Date DE = { 1, 1, 0 }, float DP = 0)
+	{
+		if (UN.length() > 3)
+			if (UP.length() > 3)
+				UsersData.push_back(BankUser{ IDsCounter, UN, EncryptData(UP, IDsCounter), UB, DB, DS, DE, DP });
+			else
+				return -2;
+		else
+			return -1;
+		return IDsCounter++;
+	}
+	bool UserAccess(short ID, string Pass) {
+		if (ID >= IDsCounter || UsersData[ID].UserPass != EncryptData(Pass, ID))
+			return false;
+		return true;
+	}
+	int GetBalance(short ID, string Pass)
+	{
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].UserBalance;
+		else return -1;
+	}
+	int GetDepositBalance(short ID, string Pass) {
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].DepositBalance;
+		else return -1;
+	}
+	bool AddBalance(short ID, string Pass, int value) {
+		if (UserAccess(ID, Pass))
+			if (UsersData[ID].UserBalance - UsersData[ID].DepositBalance >= -value)
+			{
+				UsersData[ID].UserBalance += value;
+				return true;
+			}
+		return false;
+	}
+	bool SetDepositBalance(short ID, string Pass, int value) {
+		if (UserAccess(ID, Pass)) {
+			if (value >= 0)
+				UsersData[ID].DepositBalance = value;
+			else
+				return false;
+			return true;
+		}
+		else return false;
+	}
+	string GetName(short ID, string Pass) {
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].UserName;
+		else return "Access Denied!";
+	}
+	float GetPercent(short ID, string Pass) {
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].DepositPerc;
+		else return -1;
+	}
+	Date GetDepositStart(short ID, string Pass)
+	{
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].DepositStart;
+		else return -1;
+	}
+	Date GetDepositEnd(short ID, string Pass)
+	{
+		if (UserAccess(ID, Pass))
+			return UsersData[ID].DepositEnd;
+		else return -1;
+	}
+	bool SetDepositStart(short ID, string Pass, Date newDate) {
+		if (UserAccess(ID, Pass))
+		{
+			UsersData[ID].DepositStart = newDate;
+			return true;
+		}
+		else return false;
+	}
+	bool SetDepositEnd(short ID, string Pass, Date newDate) {
+		if (UserAccess(ID, Pass))
+		{
+			UsersData[ID].DepositEnd = newDate;
+			return true;
+		}
+		else return false;
+	}
 };
 
-class Deposit:ProcCenter {
-
-
-
+class Deposit {
+	const string BankName = "000 RasmanBank";
+	ProcCenter *pCenter;
+	string sPassword;
+	short ID = -1;
 public:
-	Deposit() {}
-
+	Deposit(ProcCenter *Center):pCenter(Center){}
+	bool LogIn(short _id, string password)
+	{
+		if ((*pCenter).UserAccess(_id, password)) {
+			sPassword = password;
+			ID = _id;
+			return true;
+		}
+		return false;
+	}
+	void LogOut()
+	{
+		sPassword = " ";
+		ID = -1;
+	}
 	float GetPercentPerYear(int balance, Date start, Date end)
 	{
 		float percent = 0;
@@ -170,69 +331,68 @@ public:
 
 		return percent;
 	}
-};
-
-class ProcCenter {
-	struct BankUser {
-		short UserID;
-		string UserName;
-		string UserPass;
-		int UserBalance;
-		int DepositBalance;
-		Date DepositStart;
-		Date DepositEnd;
-		float DepositPerc;
-	};
-
-	vector<BankUser> UsersData;
-	short IDsCounter = 0;
-
-private:
-	string EncryptData(string data, int seed) {
-		string Encrypted = "";
-
-		for (int i = 0; i < data.length(); i++)
-			Encrypted += to_string((int)(data.at(i) >> 1) + seed % 32);
-
-		Encrypted += to_string(seed) + Encrypted.at(seed % Encrypted.length());
-
-		data = "";
-
-		for (int i = 0; i < Encrypted.length(); i++)
-			data += Encrypted.at(i % Encrypted.length()) << 3;
-
-		return data;
+	short AddNewUser(string UN, string UP, int UB = 0, int DB = 0, Date DS = { 1, 1, 0 }, Date DE = { 1, 1, 0 }, float DP = 0) {
+		if (DE > Date(1, 1, 0) && DP == 0) 
+			DP = GetPercentPerYear(DB, DS, DE);
+		return (*pCenter).AddUser(UN, UP, UB, DB, DS, DE, DP);
 	}
-protected:
-	ProcCenter() { }
-	short AddUser(string UN, string UP, int UB = 0, int DB = 0, Date DS = { 1, 1, 0 }, Date DE = { 1, 1, 0 }, float DP = 0)
-	{
-		if (UN.length() > 3)
-			if (UP.length() > 3)
-				UsersData.push_back(BankUser{ IDsCounter, UN, EncryptData(UP, 2), UB, DB, DS, DE, DP });
-			else
-				return -2;
+	int GetUserBalance(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetBalance(_id, Pass);
 		else
-			return -1;
-		return IDsCounter++;
+			return PC.GetBalance(ID, sPassword);
 	}
-	int GetBalance(short ID, string Pass)
-	{
-		if (ID >= IDsCounter)
-			return -1;
-
-		if (UsersData[ID].UserPass != EncryptData(Pass, 2)) {
-
-		}
+	Date GetDepositStart(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetDepositStart(_id, Pass);
+		else
+			return PC.GetDepositStart(ID, sPassword);
+	}
+	Date GetDepositEnd(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetDepositEnd(_id, Pass);
+		else
+			return PC.GetDepositEnd(ID, sPassword);
+	}
+	float GetPercent(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetPercent(_id, Pass);
+		else
+			return PC.GetPercent(ID, sPassword);
+	}
+	bool TakeMoney(int money, short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.AddBalance(_id, Pass, -money);
+		else
+			return PC.AddBalance(ID, sPassword, -money);
 	}
 };
+
+
 
 void main() {
-	Date s(17, 4, 2018);
-	Date e(17, 10, 2018);
+	setlocale(LC_ALL, "Russian");
+	ProcCenter *pCenter = new ProcCenter(Date(30,12,1999));
+	Deposit dep(pCenter);
+	int answer;
+	short ID = dep.AddNewUser("Александр Сысоев", "qwerty", 1000000, 1000000, { 1,1,2000 }, { 1,1,2005 });
+	
+	if (!dep.LogIn(ID, "Qwerty")) {
+		cout << "Попробуем другой пароль!" << endl;
+		dep.LogIn(ID, "qwerty");
+	}
+	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек!" << endl << endl << "Прошло 3 года..." << endl << endl ;
 
-	Deposit dep();
-	cout << dep.GetPercentPerYear(100000, s, e);
+	PC.Update(Date(2, 1, 2001));
 
+	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек! Сниму пару тыщ" << endl;
+	
+	while(!dep.TakeMoney(81000)) {
+		cout << "Депозит же еще не закрыт, а сумма списания больше начисленных процентов! Подождем еще пару лет!" << endl;
+		PC.Update(Date(1, 1, 2));
+	}
+	cout << "Наконец-то я снял деньги!" << endl;
+	cout << "Теперь у меня в кармане 81000, а на счету " << dep.GetUserBalance() << endl;
+	cout << "Оформляйте депозиты в 000 RasmanBank!" << endl;
 	system("pause");
 }
