@@ -1,4 +1,4 @@
-#include <cstring>;
+п»ї#include <cstring>;
 #include <iostream>;
 #include <string>;
 #include <vector>;
@@ -375,24 +375,24 @@ void main() {
 	ProcCenter *pCenter = new ProcCenter(Date(30,12,1999));
 	Deposit dep(pCenter);
 	int answer;
-	short ID = dep.AddNewUser("Александр Сысоев", "qwerty", 1000000, 1000000, { 1,1,2000 }, { 1,1,2005 });
+	short ID = dep.AddNewUser("РђР»РµРєСЃР°РЅРґСЂ РЎС‹СЃРѕРµРІ", "qwerty", 1000000, 1000000, { 1,1,2000 }, { 1,1,2005 });
 	
 	if (!dep.LogIn(ID, "Qwerty")) {
-		cout << "Попробуем другой пароль!" << endl;
+		cout << "РџРѕРїСЂРѕР±СѓРµРј РґСЂСѓРіРѕР№ РїР°СЂРѕР»СЊ!" << endl;
 		dep.LogIn(ID, "qwerty");
 	}
-	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек!" << endl << endl << "Прошло 3 года..." << endl << endl ;
+	cout << dep.GetUserBalance() << " СЂСѓР±." << endl << "РЎРєРѕР»СЊРєРѕ Сѓ РјРµРЅСЏ РґРµРЅРµР¶РµРє!" << endl << endl << "РџСЂРѕС€Р»Рѕ 3 РіРѕРґР°..." << endl << endl ;
 
 	PC.Update(Date(2, 1, 2001));
 
-	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек! Сниму пару тыщ" << endl;
+	cout << dep.GetUserBalance() << " СЂСѓР±." << endl << "РЎРєРѕР»СЊРєРѕ Сѓ РјРµРЅСЏ РґРµРЅРµР¶РµРє! РЎРЅРёРјСѓ РїР°СЂСѓ С‚С‹С‰" << endl;
 	
 	while(!dep.TakeMoney(81000)) {
-		cout << "Депозит же еще не закрыт, а сумма списания больше начисленных процентов! Подождем еще пару лет!" << endl;
+		cout << "Р”РµРїРѕР·РёС‚ Р¶Рµ РµС‰Рµ РЅРµ Р·Р°РєСЂС‹С‚, Р° СЃСѓРјРјР° СЃРїРёСЃР°РЅРёСЏ Р±РѕР»СЊС€Рµ РЅР°С‡РёСЃР»РµРЅРЅС‹С… РїСЂРѕС†РµРЅС‚РѕРІ! РџРѕРґРѕР¶РґРµРј РµС‰Рµ РїР°СЂСѓ Р»РµС‚!" << endl;
 		PC.Update(Date(1, 1, 2));
 	}
-	cout << "Наконец-то я снял деньги!" << endl;
-	cout << "Теперь у меня в кармане 81000, а на счету " << dep.GetUserBalance() << endl;
-	cout << "Оформляйте депозиты в 000 RasmanBank!" << endl;
+	cout << "РќР°РєРѕРЅРµС†-С‚Рѕ СЏ СЃРЅСЏР» РґРµРЅСЊРіРё!" << endl;
+	cout << "РўРµРїРµСЂСЊ Сѓ РјРµРЅСЏ РІ РєР°СЂРјР°РЅРµ 81000, Р° РЅР° СЃС‡РµС‚Сѓ " << dep.GetUserBalance() << endl;
+	cout << "РћС„РѕСЂРјР»СЏР№С‚Рµ РґРµРїРѕР·РёС‚С‹ РІ 000 RasmanBank!" << endl;
 	system("pause");
 }
