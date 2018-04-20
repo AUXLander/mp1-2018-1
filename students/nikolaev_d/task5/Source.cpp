@@ -14,7 +14,7 @@ class Date {
 	int year;
 
 public:
-	Date(int d = 0,int m = 0, int y = 0) {
+	Date(int d = 0, int m = 0, int y = 0) {
 		m -= 1;
 		d -= 1;
 		year = y + m / 12;
@@ -145,7 +145,7 @@ public:
 };
 ostream& operator<<(ostream& os, Date &c)
 {
-	return os << c.day << '.' << c.mounth << '.' << c.year;;
+	return os << c.day + 1 << '.' << c.mounth + 1 << '.' << c.year;;
 }
 
 class ProcCenter {
@@ -161,7 +161,6 @@ class ProcCenter {
 	};
 	vector<BankUser> UsersData;
 	short IDsCounter = 0;
-	Date currentTime;
 	string EncryptData(string data, int seed) {
 		string Encrypted = "";
 
@@ -178,10 +177,11 @@ class ProcCenter {
 		return data;
 	}
 public:
-	ProcCenter(Date curdat):currentTime(curdat){}
+	Date currentTime;
+	ProcCenter(Date curdat) :currentTime(curdat) {}
 	void Update(Date newTime = { 1,1,1970 }) {
 		if (newTime < currentTime) {
-			if(newTime == Date(1,1,1970))
+			if (newTime == Date(1, 1, 1970))
 				newTime = currentTime + Date(1, 2, 0);
 			else
 				newTime = currentTime + newTime;
@@ -205,7 +205,10 @@ public:
 	{
 		if (UN.length() > 3)
 			if (UP.length() > 3)
-				UsersData.push_back(BankUser{ IDsCounter, UN, EncryptData(UP, IDsCounter), UB, DB, DS, DE, DP });
+				if (DB <= UB)
+					UsersData.push_back(BankUser{ IDsCounter, UN, EncryptData(UP, IDsCounter), UB, DB, DS, DE, DP });
+				else
+					return -3;
 			else
 				return -2;
 		else
@@ -239,7 +242,7 @@ public:
 	}
 	bool SetDepositBalance(short ID, string Pass, int value) {
 		if (UserAccess(ID, Pass)) {
-			if (value >= 0)
+			if (value >= 0 && value <= UsersData[ID].UserBalance)
 				UsersData[ID].DepositBalance = value;
 			else
 				return false;
@@ -285,6 +288,16 @@ public:
 		}
 		else return false;
 	}
+	bool SetPercent(short ID, string Pass, float value) {
+		if (UserAccess(ID, Pass))
+		{
+			if (UsersData[ID].DepositBalance > 0) {
+				UsersData[ID].DepositPerc = value;
+				return true;
+			}
+		}
+		return false;
+	}
 };
 
 class Deposit {
@@ -293,7 +306,7 @@ class Deposit {
 	string sPassword;
 	short ID = -1;
 public:
-	Deposit(ProcCenter *Center):pCenter(Center){}
+	Deposit(ProcCenter *Center) :pCenter(Center) {}
 	bool LogIn(short _id, string password)
 	{
 		if ((*pCenter).UserAccess(_id, password)) {
@@ -332,7 +345,7 @@ public:
 		return percent;
 	}
 	short AddNewUser(string UN, string UP, int UB = 0, int DB = 0, Date DS = { 1, 1, 0 }, Date DE = { 1, 1, 0 }, float DP = 0) {
-		if (DE > Date(1, 1, 0) && DP == 0) 
+		if (DE > Date(1, 1, 0) && DP == 0)
 			DP = GetPercentPerYear(DB, DS, DE);
 		return (*pCenter).AddUser(UN, UP, UB, DB, DS, DE, DP);
 	}
@@ -366,33 +379,186 @@ public:
 		else
 			return PC.AddBalance(ID, sPassword, -money);
 	}
+	string GetName(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetName(_id, Pass);
+		else
+			return PC.GetName(ID, sPassword);
+	}
+	int GetDepositBalance(short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.GetDepositBalance(_id, Pass);
+		else
+			return PC.GetDepositBalance(ID, sPassword);
+	}
+	bool SetDepositStart(Date value, short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.SetDepositStart(_id, Pass, value);
+		else
+			return PC.SetDepositStart(ID, sPassword, value);
+	}
+	bool SetDepositEnd(Date value, short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.SetDepositEnd(_id, Pass, value);
+		else
+			return PC.SetDepositEnd(ID, sPassword, value);
+	}
+	bool SetDepositBalance(int value, short _id = 0, string Pass = " ") {
+		if (ID < 0)
+			return PC.SetDepositBalance(_id, Pass, value);
+		else
+			return PC.SetDepositBalance(ID, sPassword, value);
+	}
+	bool SetDeposit(int value, Date start, Date end, short _id = 0, string Pass = " ") {
+		if (ID < 0) {
+			if (PC.SetDepositBalance(_id, Pass, value)) {
+				float t = GetPercentPerYear(PC.GetBalance(_id, Pass), start, end);
+				return
+					PC.SetDepositStart(_id, Pass, start) &&
+					PC.SetDepositEnd(_id, Pass, end) &&
+					PC.SetPercent(_id, Pass, t);
+			}
+		}
+		else
+		{
+			if (PC.SetDepositBalance(ID, sPassword, value)) {
+				float t = GetPercentPerYear(PC.GetBalance(ID, sPassword), start, end);
+				return
+					PC.SetDepositStart(ID, sPassword, start) &&
+					PC.SetDepositEnd(ID, sPassword, end) &&
+					PC.SetPercent(ID, sPassword, t);
+			}
+		}
+		return false;
+	}
 };
 
 
 
 void main() {
 	setlocale(LC_ALL, "Russian");
-	ProcCenter *pCenter = new ProcCenter(Date(30,12,1999));
+	ProcCenter *pCenter = new ProcCenter(Date(30, 12, 1999));
 	Deposit dep(pCenter);
-	int answer;
-	short ID = dep.AddNewUser("Александр Сысоев", "qwerty", 1000000, 1000000, { 1,1,2000 }, { 1,1,2005 });
-	
-	if (!dep.LogIn(ID, "Qwerty")) {
-		cout << "Попробуем другой пароль!" << endl;
-		dep.LogIn(ID, "qwerty");
-	}
-	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек!" << endl << endl << "Прошло 3 года..." << endl << endl ;
 
-	PC.Update(Date(2, 1, 2001));
+	short ID;
+	do {
+		string name;
+		string pass;
+		int balance;
+		cout << "Введите имя   : "; cin >> name;
+		getchar();
+		cout << endl << "Введите пароль: "; cin >> pass;
+		getchar();
+		cout << endl << "Введите сумму : "; cin >> balance;
+		getchar();
 
-	cout << dep.GetUserBalance() << " руб." << endl << "Сколько у меня денежек! Сниму пару тыщ" << endl;
-	
-	while(!dep.TakeMoney(81000)) {
-		cout << "Депозит же еще не закрыт, а сумма списания больше начисленных процентов! Подождем еще пару лет!" << endl;
-		PC.Update(Date(1, 1, 2));
+		switch (ID = dep.AddNewUser(name, pass, balance)) {
+			case -1:
+				cout << "Имя пользователя слишком короткое!" << endl;
+				break;
+			case -2:
+				cout << "Пароль слишком короткий!" << endl;
+				break;
+			case -3:
+				cout << "На счету недостаточно средств для открытия депозита!" << endl;
+				break;
+			default:
+				cout << "Пользватель успешно зарегистрирован!" << endl;
+		}
+	} while (ID < 0);
+
+	bool isLogged = false;
+	do {
+		system("cls");
+		string pass;
+		cout << "Для авторизации введите пароль: ";
+		cin >> pass;
+		if (!(isLogged = dep.LogIn(ID, pass)))
+			cout << "Неверный пароль!" << endl;
+		system("pause");
+	} while (!isLogged);
+	system("cls");
+	while (true)
+	{
+		cout << "Добро пожаловать, " << dep.GetName() << '!' << endl;
+		cout << "Сегодня " << PC.currentTime << endl << endl;
+		cout << "000 RasmanBank: " << endl << "-------------------------" << endl;
+		cout << "Баланс     : " << dep.GetUserBalance() << endl;
+		if (dep.GetDepositBalance() > 0)
+		{
+			cout << "Депозит    : " << dep.GetDepositBalance() <<  endl;
+			cout << "Процент    : " << dep.GetPercent() << endl;
+			cout << "Открыт     : " << dep.GetDepositStart() << endl;
+			cout << "Закрывается: " << dep.GetDepositEnd() << endl;
+		}
+		int action;
+		cout << endl << "Действия: " << endl;
+		cout << "1. Оформить депозит" << endl;
+		cout << "2. Ввести новую дату" << endl;
+		cout << "3. Снять деньги" << endl;
+		cout << "default: Перевести время вперед на месяц" << endl;
+		cin >> action;
+		getchar();
+		Date newDate;
+		switch (action) {
+			case 1:
+				int summ, type;
+				cout << "Вам доступен депозит на: " << endl;
+				cout << "до 100 000 руб" << endl;
+				if (dep.GetUserBalance() > 100000)
+					cout << "до 500 000 руб" << endl;
+				if (dep.GetUserBalance() > 500000)
+					cout << "до 1 000 000 руб" << endl;
+				if (dep.GetUserBalance() > 1000000)
+					cout << "более 1 000 000 руб" << endl;
+				cout << "Чем больше депозит, тем выше процент" << endl;
+				cout << "Возможные сроки: " << endl << "1) 3 месяца\n2) 6 месяцев\n3) 1 год\n4) 2 года\n5) 3 года" << endl;
+				cout << "Введите сумму и номер срока: summ number" << endl;
+
+				cin >> summ >> type;
+				cout << endl;
+				getchar();
+				switch (type) {
+					case 1:
+						newDate = PC.currentTime + Date(1, 3, 0);
+						break;
+					case 2:
+						newDate = PC.currentTime + Date(1, 6, 0);
+						break;
+					case 3:
+						newDate = PC.currentTime + Date(1, 1, 1);
+						break;
+					case 4:
+						newDate = PC.currentTime + Date(1, 1, 2);
+						break;
+					case 5:
+						newDate = PC.currentTime + Date(1, 1, 3);
+						break;
+					default:
+						newDate = PC.currentTime;
+				}
+				dep.SetDeposit(summ, PC.currentTime, newDate);
+				break;
+			case 2:
+				int d, m, y;
+				cout << "dd mm yyyy" << endl;
+				cin >> d >> m >> y;
+				PC.Update(Date(d, m, y));
+				break;
+			case 3:
+				int sums;
+				cout << "Введите сумму списания: ";
+				cin >> sums;
+				getchar();
+				if (!dep.TakeMoney(sums)) {
+					cout << "Депозит же еще не закрыт, а сумма списания больше начисленных процентов!" << endl;
+					system("pause");
+				}
+				break;
+			default:
+				PC.Update();
+		}
+		system("cls");
 	}
-	cout << "Наконец-то я снял деньги!" << endl;
-	cout << "Теперь у меня в кармане 81000, а на счету " << dep.GetUserBalance() << endl;
-	cout << "Оформляйте депозиты в 000 RasmanBank!" << endl;
 	system("pause");
 }
